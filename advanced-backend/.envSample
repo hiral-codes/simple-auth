@@ -1,0 +1,4 @@
+PORT = 
+MONGODB_URI = your_key
+JWT_SECRET_KEY = your_key
+FRONTEND_URL = your_frontend_url
