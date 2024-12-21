@@ -7,8 +7,7 @@ function Header() {
 
   const navigate = useNavigate();
   const handleLogOut = () => {
-    logout();
-    navigate("/login");
+    logout(navigate("/login"));
   };
   return (
     <div className="h-16 flex items-center justify-between z-10 bg-white shadow-sm fixed top-0 left-0 right-0 px-40">
