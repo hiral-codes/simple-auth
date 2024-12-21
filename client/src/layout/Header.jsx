@@ -1,9 +1,13 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
+import { useContext } from "react";
 function Header() {
+  const { user, logout } = useContext(AuthContext);
+
   const navigate = useNavigate();
   const handleLogOut = () => {
-    localStorage.removeItem("user");
+    logout();
     navigate("/login");
   };
   return (
@@ -15,7 +19,7 @@ function Header() {
         <Link to="/login">Login</Link>
         <Link to="/signup">Signup</Link>
         <Link to="/dashboard">Dashboard</Link>
-        <button onClick={handleLogOut}>Logout</button>
+        {user && <button onClick={handleLogOut}>Logout</button>}
       </nav>
     </div>
   );
