@@ -1,53 +1,39 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
+import { AuthContext } from "../context/AuthContext";
+import { useContext } from "react";
 
 function Dashboard() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState();
+  const { user, setUser } = useContext(AuthContext);
+
+  const [loading, setLoading] = useState(false);
   const [registeredUsers, setRegisteredUsers] = useState([]);
+  const [formLoading, setFormLoading] = useState(false);
 
-  const navigate = useNavigate();
+  // Conditional assigning of data
+  const [firstName, setFirstName] = useState(user?.firstName || "");
+  const [lastName, setLastName] = useState(user?.lastName || "");
+  const [email, setEmail] = useState(user?.email || "");
 
-  // Form Data
-
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-
-  // Fetch user data on component mount
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      setFirstName(parsedUser.firstName);
-      setLastName(parsedUser.lastName);
-      setEmail(parsedUser.email);
-    } else {
-      alert("Please Login");
-      navigate("/login");
-    }
-    // Fetch registered users
     fetchRegisteredUsers();
-  }, [navigate]);
+  }, []);
 
-  // Fetch registered users
   const fetchRegisteredUsers = async () => {
-    setLoading(true); // Start loading
+    setLoading(true);
     try {
       const response = await api.get("/users");
       setRegisteredUsers(response.data);
     } catch (error) {
       console.error("Error fetching registered users:", error);
     } finally {
-      setLoading(false); // End loading
+      setLoading(false);
     }
   };
 
-  // Handle form submission to update user
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+    setFormLoading(true);
     try {
       const response = await api.put(`/user/${user._id}`, {
         firstName,
@@ -57,14 +43,15 @@ function Dashboard() {
       alert("User updated successfully!");
       const updatedUser = response.data.user;
       localStorage.setItem("user", JSON.stringify(updatedUser));
-      setUser(updatedUser); // Update user in state after successful update
+      setUser(updatedUser);
     } catch (error) {
       console.error("Error updating user:", error);
       alert("Failed to update user.");
+    } finally {
+      setFormLoading(false);
     }
   };
 
-  // Handle user deletion
   const handleDeleteUser = async (userId) => {
     try {
       await api.delete(`/user/${userId}`);
@@ -75,6 +62,21 @@ function Dashboard() {
       alert("Failed to delete user.");
     }
   };
+
+  const RegisteredUser = ({ user }) => (
+    <li className="flex justify-between items-center mb-2 p-2 bg-white rounded shadow">
+      <span>
+        {user.firstName} {user.lastName} ({user.email})
+      </span>
+      <button
+        onClick={() => handleDeleteUser(user._id)}
+        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+        aria-label={`Delete user ${user.firstName} ${user.lastName}`}
+      >
+        Delete
+      </button>
+    </li>
+  );
 
   return (
     <div className="h-screen flex flex-col items-center p-20">
@@ -92,21 +94,19 @@ function Dashboard() {
             <p>Email: {user.email}</p>
           </div>
 
-          {/* Form to Update User */}
           <form
             onSubmit={handleFormSubmit}
             className="w-full max-w-md bg-gray-100 p-6 rounded-md shadow-md"
           >
             <h2 className="text-2xl font-bold mb-4">Update Profile</h2>
+            {formLoading && <p className="text-blue-500">Updating...</p>}
             <div className="mb-4">
               <label className="block text-left font-medium">First Name</label>
               <input
                 type="text"
                 name="firstName"
                 value={firstName}
-                onChange={(e) => {
-                  setFirstName(e.target.value);
-                }}
+                onChange={(e) => setFirstName(e.target.value)}
                 className="w-full p-2 border rounded"
                 required
               />
@@ -117,9 +117,7 @@ function Dashboard() {
                 type="text"
                 name="lastName"
                 value={lastName}
-                onChange={(e) => {
-                  setLastName(e.target.value);
-                }}
+                onChange={(e) => setLastName(e.target.value)}
                 className="w-full p-2 border rounded"
                 required
               />
@@ -130,9 +128,7 @@ function Dashboard() {
                 type="email"
                 name="email"
                 value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                }}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full p-2 border rounded"
                 required
               />
@@ -145,7 +141,6 @@ function Dashboard() {
             </button>
           </form>
 
-          {/* List of Registered Users */}
           <div className="mt-8 w-full max-w-2xl">
             <h2 className="text-3xl font-bold mb-4">Registered Users</h2>
             {loading ? (
@@ -153,20 +148,7 @@ function Dashboard() {
             ) : registeredUsers.length > 0 ? (
               <ul className="bg-gray-100 p-4 rounded-md shadow-md">
                 {registeredUsers.map((user) => (
-                  <li
-                    key={user._id} // Make sure to use _id for the key
-                    className="flex justify-between items-center mb-2 p-2 bg-white rounded shadow"
-                  >
-                    <span>
-                      {user.firstName} {user.lastName} ({user.email})
-                    </span>
-                    <button
-                      onClick={() => handleDeleteUser(user._id)} // Use _id for deletion
-                      className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                    >
-                      Delete
-                    </button>
-                  </li>
+                  <RegisteredUser key={user._id} user={user} />
                 ))}
               </ul>
             ) : (
